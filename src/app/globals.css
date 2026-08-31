@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+}
+
+@layer components {
+  /* Hygraph RichText arrives as an HTML string. */
+  .richtext > * + * {
+    margin-top: 0.875rem;
+  }
+
+  .richtext p,
+  .richtext li {
+    color: var(--color-slate-600);
+    line-height: 1.7;
+  }
+
+  .richtext h2,
+  .richtext h3 {
+    font-weight: 600;
+    color: var(--color-slate-900);
+  }
+
+  .richtext h2 {
+    font-size: 1.125rem;
+  }
+
+  .richtext h3 {
+    font-size: 1rem;
+  }
+
+  .richtext ul,
+  .richtext ol {
+    padding-left: 1.25rem;
+    list-style: disc;
+  }
+
+  .richtext ol {
+    list-style: decimal;
+  }
+
+  .richtext li + li {
+    margin-top: 0.35rem;
+  }
+
+  .richtext a {
+    color: var(--color-blue-600);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .richtext strong {
+    color: var(--color-slate-900);
+    font-weight: 600;
+  }
+}
