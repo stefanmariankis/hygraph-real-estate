@@ -1,0 +1,74 @@
+# buildspec.yml — static site build + deploy
+#
+# Drop this file in the ROOT of your repository (same level as package.json).
+# The CI pipeline (AWS CodeBuild) runs it automatically on every push to `main`.
+#
+# It does three things:
+#   1. Installs dependencies and builds your site.
+#   2. Uploads the build output to S3 (syncing, so removed files are deleted too).
+#   3. Clears the CloudFront cache so users get the new version immediately.
+#
+# YOU ONLY NEED TO ADJUST TWO THINGS (marked "ADJUST" below):
+#   - the Node.js version, if your project needs a different one
+#   - BUILD_DIR, to match the folder your build outputs to
+#
+# HOSTING_BUCKET and DISTRIBUTION_ID are injected by the pipeline — do NOT set them here.
+
+version: 0.2
+
+env:
+  variables:
+    # ADJUST: the folder your build command produces.
+    #   Vite / CRA (react-scripts) -> "build"   (CRA) or "dist" (Vite)
+    #   Next.js static export       -> "out"
+    #   Astro / SvelteKit static    -> "dist"
+    #   plain HTML (no build step)  -> "."       (repo root itself)
+    BUILD_DIR: "dist"
+
+phases:
+  install:
+    runtime-versions:
+      # ADJUST: pin to the Node version your project uses.
+      nodejs: 20
+    commands:
+      - echo "Installing dependencies..."
+      # Uses package-lock.json for reproducible installs. If you don't have a
+      # lock file, change this to: npm install
+      - npm ci
+
+  build:
+    commands:
+      - echo "Building site..."
+      # ADJUST if your build script isn't "build".
+      # If you have NO build step (plain static HTML), delete this line
+      # and set BUILD_DIR: "." above.
+      - npm run build
+
+  post_build:
+    commands:
+      # These run only if the build above succeeded, so a broken build
+      # never overwrites your live site or clears the cache.
+      - echo "Deploying to S3 bucket $HOSTING_BUCKET ..."
+      - aws s3 sync "$BUILD_DIR" "s3://$HOSTING_BUCKET" --delete
+      - echo "Invalidating CloudFront cache ..."
+      - aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" --paths "/*"
+      - echo "Done."
+
+# ---------------------------------------------------------------------------
+# Notes for the developer:
+#
+# * Do not commit AWS keys or bucket names here. The pipeline provides
+#   HOSTING_BUCKET and DISTRIBUTION_ID automatically, with the right
+#   permissions. Hardcoding anything is unnecessary and will break.
+#
+# * Test your build locally first: run your build command and confirm the
+#   output lands in the folder named in BUILD_DIR. If `npm run build` works
+#   on your machine and fills that folder, the pipeline will work too.
+#
+# * `--delete` means files removed from your repo are also removed from the
+#   live site on the next deploy. That's intended.
+#
+# * If the deploy needs environment variables at BUILD time (e.g. an API URL
+#   baked into the bundle), tell the DevOps owner — those are added to the
+#   CodeBuild project, not to this file.
+# ---------------------------------------------------------------------------
