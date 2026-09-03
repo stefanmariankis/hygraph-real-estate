@@ -3,9 +3,9 @@ import AgentCard from "@/components/AgentCard";
 import BackLink from "@/components/BackLink";
 import PropertyGallery from "@/components/PropertyGallery";
 import StatCard from "@/components/StatCard";
+import Testimonials from "@/components/Testimonials";
 import { ListingTypeBadge, StatusBadge } from "@/components/Badges";
 import {
-  CITY_LABELS,
   LAYOUT_DESCRIPTIONS,
   LAYOUT_LABELS,
   LISTING_TYPE_LABELS,
@@ -19,36 +19,34 @@ import {
   type Layout,
 } from "@/lib/domain";
 import { getPropertyBySlug, getPropertySlugs } from "@/lib/queries";
-
-export const revalidate = 60;
+import type { Testimonial } from "@/lib/queries";
 
 export async function generateStaticParams() {
   const slugs = await getPropertySlugs();
   return slugs.map((slug) => ({ slug }));
 }
 
-export async function generateMetadata({
-  params,
-}: PageProps<"/property/[slug]">) {
+export async function generateMetadata({ params }: PageProps<"/property/[slug]">) {
   const { slug } = await params;
   const property = await getPropertyBySlug(slug);
-  if (!property) return { title: "Listing not found" };
+  if (!property) return { title: "Property not found" };
+
+  const place = [property.neighborhood?.name, property.city?.name]
+    .filter(Boolean)
+    .join(", ");
 
   return {
     title: property.title,
-    description: `${label(PROPERTY_TYPE_LABELS, property.propertyType)} in ${label(
-      CITY_LABELS,
-      property.city,
-    )} · ${formatRooms(property.rooms)} · ${formatSurface(property.surface)} · ${formatPrice(
+    description: `${label(PROPERTY_TYPE_LABELS, property.propertyType)} in ${
+      place || "Romania"
+    } · ${formatRooms(property.rooms)} · ${formatSurface(property.surface)} · ${formatPrice(
       property.price,
       property.listingType,
     )}`,
   };
 }
 
-export default async function PropertyPage({
-  params,
-}: PageProps<"/property/[slug]">) {
+export default async function PropertyPage({ params }: PageProps<"/property/[slug]">) {
   const { slug } = await params;
   const property = await getPropertyBySlug(slug);
 
@@ -60,6 +58,19 @@ export default async function PropertyPage({
     property.listingType === "sale" && property.surface > 0
       ? Math.round(property.price / property.surface)
       : null;
+
+  // One property can be handled by two agents who share a client, so the
+  // testimonials have to be de-duplicated before they are shown.
+  const testimonials = Array.from(
+    agents
+      .flatMap((agent) => agent.testimonial ?? [])
+      .reduce((unique, t) => unique.set(t.id, t), new Map<string, Testimonial>())
+      .values(),
+  );
+
+  const place = [property.neighborhood?.name, property.city?.name]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -74,15 +85,17 @@ export default async function PropertyPage({
           {property.title}
         </h1>
         <p className="mt-1.5 text-sm text-slate-500">
-          {label(CITY_LABELS, property.city)} ·{" "}
-          {label(PROPERTY_TYPE_LABELS, property.propertyType)} ·{" "}
+          {place || "—"}
+          <span className="mx-1.5 text-slate-300">·</span>
+          {label(PROPERTY_TYPE_LABELS, property.propertyType)}
+          <span className="mx-1.5 text-slate-300">·</span>
           {label(LAYOUT_LABELS, property.layout)}
         </p>
       </header>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0">
-          <PropertyGallery property={property} />
+          <PropertyGallery property={property} images={property.images} />
 
           <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
             <StatCard label="Rooms" value={String(property.rooms)} />
@@ -102,26 +115,25 @@ export default async function PropertyPage({
                 term="Listing type"
                 value={label(LISTING_TYPE_LABELS, property.listingType)}
               />
-              <Row term="City" value={label(CITY_LABELS, property.city)} />
+              <Row term="City" value={property.city?.name ?? "—"} />
+              <Row term="Neighborhood" value={property.neighborhood?.name ?? "—"} />
+              {property.city?.county && (
+                <Row term="County" value={property.city.county} />
+              )}
               <Row
                 term="Room layout"
                 value={label(LAYOUT_LABELS, property.layout)}
                 hint={LAYOUT_DESCRIPTIONS[property.layout as Layout]}
               />
               {pricePerSqm !== null && (
-                <Row
-                  term="Price per m²"
-                  value={`€${formatNumber(pricePerSqm)}`}
-                />
+                <Row term="Price per m²" value={`€${formatNumber(pricePerSqm)}`} />
               )}
             </dl>
           </section>
 
           {property.description?.html && (
             <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">
-                Description
-              </h2>
+              <h2 className="text-lg font-semibold text-slate-900">Description</h2>
               <div
                 className="richtext mt-3"
                 dangerouslySetInnerHTML={{ __html: property.description.html }}
@@ -143,6 +155,27 @@ export default async function PropertyPage({
                 ))}
               </ul>
             </section>
+          )}
+
+          {property.city?.description?.html && (
+            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-900">
+                About {property.city.name}
+              </h2>
+              <div
+                className="richtext mt-3"
+                dangerouslySetInnerHTML={{ __html: property.city.description.html }}
+              />
+            </section>
+          )}
+
+          {testimonials.length > 0 && (
+            <div className="mt-10">
+              <Testimonials
+                testimonials={testimonials}
+                heading={agents.length === 1 ? "What clients say about this agent" : "What clients say"}
+              />
+            </div>
           )}
         </div>
 
@@ -189,15 +222,7 @@ export default async function PropertyPage({
   );
 }
 
-function Row({
-  term,
-  value,
-  hint,
-}: {
-  term: string;
-  value: string;
-  hint?: string;
-}) {
+function Row({ term, value, hint }: { term: string; value: string; hint?: string }) {
   return (
     <div className="flex items-start justify-between gap-6 py-3 first:pt-0 last:pb-0">
       <dt className="text-sm text-slate-500">{term}</dt>

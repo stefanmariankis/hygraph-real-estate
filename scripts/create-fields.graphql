@@ -1,0 +1,67 @@
+query GetModelIds {
+  viewer {
+    project {
+      environment(name: "master") {
+        contentModel {
+          models(includeSystemModels: true) {
+            id
+            apiId
+          }
+        }
+      }
+    }
+  }
+}
+
+mutation CreateAssetFields {
+  images: createRelationalField(
+    data: {
+      parentId: "PROPERTY_MODEL_ID"
+      apiId: "images"
+      displayName: "Images"
+      type: ASSET
+      isList: true
+      reverseSide: {
+        modelId: "ASSET_MODEL_ID"
+        field: { apiId: "property", displayName: "Property", isList: true }
+      }
+    }
+  ) {
+    id
+    apiId
+  }
+
+  photo: createRelationalField(
+    data: {
+      parentId: "AGENT_MODEL_ID"
+      apiId: "photo"
+      displayName: "Photo"
+      type: ASSET
+      isList: false
+      reverseSide: {
+        modelId: "ASSET_MODEL_ID"
+        field: { apiId: "agentPhoto", displayName: "Agent photo", isList: true }
+      }
+    }
+  ) {
+    id
+    apiId
+  }
+
+  logo: createRelationalField(
+    data: {
+      parentId: "AGENCY_MODEL_ID"
+      apiId: "logo"
+      displayName: "Logo"
+      type: ASSET
+      isList: false
+      reverseSide: {
+        modelId: "ASSET_MODEL_ID"
+        field: { apiId: "agencyLogo", displayName: "Agency logo", isList: true }
+      }
+    }
+  ) {
+    id
+    apiId
+  }
+}

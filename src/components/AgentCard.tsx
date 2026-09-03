@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { AgentSummary } from "@/lib/queries";
 
-/** Initials stand in for the avatar the API does not provide. */
+/** Initials stand in when an agent has no portrait in the CMS. */
 function initials(fullName: string): string {
   return fullName
     .split(/\s+/)
@@ -23,16 +23,23 @@ export default function AgentCard({
   return (
     <div className="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-blue-50 text-sm font-semibold text-blue-700"
-        >
-          {initials(agent.fullName)}
-        </span>
+        {agent.photo ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={agent.photo.url}
+            alt=""
+            className="size-11 shrink-0 rounded-full bg-slate-100 object-cover"
+          />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="grid size-11 shrink-0 place-items-center rounded-full bg-blue-50 text-sm font-semibold text-blue-700"
+          >
+            {initials(agent.fullName)}
+          </span>
+        )}
         <div className="min-w-0">
-          <p className="truncate font-semibold text-slate-900">
-            {agent.fullName}
-          </p>
+          <p className="truncate font-semibold text-slate-900">{agent.fullName}</p>
           {showAgency && agency && (
             <p className="truncate text-sm text-slate-500">
               {agency.slug ? (

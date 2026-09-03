@@ -1,6 +1,5 @@
 import { hygraph } from "./hygraph";
 import type {
-  City,
   Layout,
   ListingStatus,
   ListingType,
@@ -11,14 +10,28 @@ import type {
  * Types are hand-written from an introspection of the live schema. Where the
  * API names differ from the usual guess, the difference is called out:
  *
- *   Agent.agencyName   — the relation to Agency (not `agency`)
- *   Agency.agentName   — the populated relation to Agent (not `agents`);
- *                        an `agent` field also exists but is empty
- *   Property.feature   — singular, though it is many-to-many
- *   Property           — has NO image/asset field at all
+ *   Agent.agencyName    — the relation to Agency (not `agency`)
+ *   Agency.agentName    — the populated relation to Agent (not `agents`)
+ *   Agent.testimonial   — reverse relation, singular name, returns a list
+ *   Agency.testimonial  — same
+ *   Property.feature    — singular, though it is many-to-many
  */
 
+export type ImageRef = { url: string };
+
 export type FeatureRef = { id: string; name: string };
+
+export type CityRef = { id: string; name: string; slug: string };
+
+export type NeighborhoodRef = { id: string; name: string; slug: string };
+
+export type Testimonial = {
+  id: string;
+  slug: string;
+  authorName: string;
+  quote: string;
+  rating: number | null;
+};
 
 export type AgencyRef = {
   id: string;
@@ -32,6 +45,7 @@ export type AgentSummary = {
   slug: string | null;
   email: string;
   phone: string;
+  photo: ImageRef | null;
   agencyName: AgencyRef | null;
 };
 
@@ -47,14 +61,17 @@ export type PropertySummary = {
   propertyType: PropertyType;
   listingType: ListingType;
   layout: Layout;
-  city: City;
   propertyStatus: ListingStatus;
+  city: CityRef | null;
+  neighborhood: NeighborhoodRef | null;
+  images: ImageRef[];
 };
 
 export type PropertyDetail = PropertySummary & {
   description: { html: string } | null;
-  agent: AgentSummary[];
+  agent: (AgentSummary & { testimonial: Testimonial[] })[];
   feature: FeatureRef[];
+  city: (CityRef & { county: string | null; description: { html: string } | null }) | null;
 };
 
 export type Agency = {
@@ -62,7 +79,12 @@ export type Agency = {
   name: string;
   slug: string | null;
   foundedYear: number | null;
-  agentName: (AgentSummary & { property: PropertySummary[] })[];
+  logo: ImageRef | null;
+  testimonial: Testimonial[];
+  agentName: (AgentSummary & {
+    property: PropertySummary[];
+    testimonial: Testimonial[];
+  })[];
 };
 
 const PROPERTY_SUMMARY = /* GraphQL */ `
@@ -78,8 +100,20 @@ const PROPERTY_SUMMARY = /* GraphQL */ `
     propertyType
     listingType
     layout
-    city
     propertyStatus
+    city {
+      id
+      name
+      slug
+    }
+    neighborhood {
+      id
+      name
+      slug
+    }
+    images {
+      url
+    }
   }
 `;
 
@@ -90,6 +124,9 @@ const AGENT_SUMMARY = /* GraphQL */ `
     slug
     email
     phone
+    photo {
+      url
+    }
     agencyName {
       id
       name
@@ -98,40 +135,55 @@ const AGENT_SUMMARY = /* GraphQL */ `
   }
 `;
 
-/** Mirrors Hygraph's PropertyWhereInput for the filters this UI exposes. */
-export type PropertyWhere = {
-  city?: City;
-  propertyType?: PropertyType;
-  listingType?: ListingType;
-  price_gte?: number;
-  price_lte?: number;
-};
+const TESTIMONIAL = /* GraphQL */ `
+  fragment TestimonialFields on Testimonial {
+    id
+    slug
+    authorName
+    quote
+    rating
+  }
+`;
 
-export async function getProperties(where: PropertyWhere) {
-  const data = await hygraph<{
-    properties: PropertySummary[];
-    propertiesConnection: { aggregate: { count: number } };
-  }>(
+/**
+ * The listing page is statically exported and filters in the browser, so it
+ * asks for the whole published catalogue in one go.
+ */
+export async function getProperties() {
+  const data = await hygraph<{ properties: PropertySummary[] }>(
     /* GraphQL */ `
-      query Properties($where: PropertyWhereInput!) {
-        properties(where: $where, orderBy: createdAt_DESC, first: 60) {
+      query Properties {
+        properties(orderBy: createdAt_DESC, first: 200) {
           ...PropertySummary
-        }
-        propertiesConnection(where: $where) {
-          aggregate {
-            count
-          }
         }
       }
       ${PROPERTY_SUMMARY}
     `,
-    { where },
   );
+  return data.properties;
+}
 
-  return {
-    properties: data.properties,
-    count: data.propertiesConnection.aggregate.count,
-  };
+/** Cities and neighbourhoods that actually have properties, for the filters. */
+export async function getFilterOptions() {
+  const data = await hygraph<{
+    cities: (CityRef & { neighborhood: NeighborhoodRef[] })[];
+  }>(
+    /* GraphQL */ `
+      query FilterOptions {
+        cities(orderBy: name_ASC, first: 100) {
+          id
+          name
+          slug
+          neighborhood(orderBy: name_ASC, first: 100) {
+            id
+            name
+            slug
+          }
+        }
+      }
+    `,
+  );
+  return data.cities;
 }
 
 export async function getPropertyBySlug(slug: string) {
@@ -143,8 +195,17 @@ export async function getPropertyBySlug(slug: string) {
           description {
             html
           }
+          city {
+            county
+            description {
+              html
+            }
+          }
           agent {
             ...AgentSummary
+            testimonial(first: 10) {
+              ...TestimonialFields
+            }
           }
           feature {
             id
@@ -154,10 +215,10 @@ export async function getPropertyBySlug(slug: string) {
       }
       ${PROPERTY_SUMMARY}
       ${AGENT_SUMMARY}
+      ${TESTIMONIAL}
     `,
     { slug },
   );
-
   return data.property;
 }
 
@@ -170,9 +231,18 @@ export async function getAgencyBySlug(slug: string) {
           name
           slug
           foundedYear
+          logo {
+            url
+          }
+          testimonial(first: 20) {
+            ...TestimonialFields
+          }
           agentName {
             ...AgentSummary
-            property(orderBy: createdAt_DESC) {
+            testimonial(first: 10) {
+              ...TestimonialFields
+            }
+            property(orderBy: createdAt_DESC, first: 100) {
               ...PropertySummary
             }
           }
@@ -180,14 +250,13 @@ export async function getAgencyBySlug(slug: string) {
       }
       ${PROPERTY_SUMMARY}
       ${AGENT_SUMMARY}
+      ${TESTIMONIAL}
     `,
     { slug },
   );
-
   return data.agency;
 }
 
-/** Slugs for generateStaticParams / sitemap-style prerendering. */
 export async function getPropertySlugs() {
   const data = await hygraph<{ properties: { slug: string | null }[] }>(
     /* GraphQL */ `

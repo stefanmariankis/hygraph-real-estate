@@ -1,0 +1,247 @@
+# City / Neighborhood / Testimonial — content import.
+# Paste into the Hygraph API Playground (Content API (master)) and run the
+# operations in order using the dropdown next to the run button.
+#
+# The MODELS AND FIELDS must exist first — the Playground cannot create schema.
+# See the table in the chat for what to build in Schema.
+
+mutation CreateCities {
+  c1: createCity(
+    data: {
+      name: "Cluj-Napoca"
+      slug: "cluj-napoca"
+      county: "Cluj"
+      description: { children: [{ type: "paragraph", children: [{ text: "Romania's second-largest urban economy and its most expensive housing market outside the capital, driven by a dense IT and university population." }] }] }
+    }
+  ) { id slug }
+
+  c2: createCity(
+    data: {
+      name: "Bucharest"
+      slug: "bucharest"
+      county: "Bucuresti"
+      description: { children: [{ type: "paragraph", children: [{ text: "The capital and by far the largest market, spanning six sectors with very different price levels and building stock." }] }] }
+    }
+  ) { id slug }
+
+  c3: createCity(
+    data: {
+      name: "Bistrita"
+      slug: "bistrita"
+      county: "Bistrita-Nasaud"
+      description: { children: [{ type: "paragraph", children: [{ text: "A small Transylvanian county seat with a compact historic centre and a slower, more affordable market." }] }] }
+    }
+  ) { id slug }
+
+  c4: createCity(
+    data: {
+      name: "Oradea"
+      slug: "oradea"
+      county: "Bihor"
+      description: { children: [{ type: "paragraph", children: [{ text: "Known for its restored Art Nouveau centre and steady municipal investment, close to the Hungarian border." }] }] }
+    }
+  ) { id slug }
+
+  c5: createCity(
+    data: {
+      name: "Timisoara"
+      slug: "timisoara"
+      county: "Timis"
+      description: { children: [{ type: "paragraph", children: [{ text: "The largest city in western Romania, with a strong manufacturing and services base and heavy suburban expansion." }] }] }
+    }
+  ) { id slug }
+
+}
+
+mutation CreateNeighborhoods {
+  n1: createNeighborhood(
+    data: { name: "Gheorgheni", slug: "gheorgheni", city: { connect: { slug: "cluj-napoca" } } }
+  ) { id slug }
+
+  n2: createNeighborhood(
+    data: { name: "Marasti", slug: "marasti", city: { connect: { slug: "cluj-napoca" } } }
+  ) { id slug }
+
+  n3: createNeighborhood(
+    data: { name: "Buna Ziua", slug: "buna-ziua", city: { connect: { slug: "cluj-napoca" } } }
+  ) { id slug }
+
+  n4: createNeighborhood(
+    data: { name: "Aviatiei", slug: "aviatiei", city: { connect: { slug: "bucharest" } } }
+  ) { id slug }
+
+  n5: createNeighborhood(
+    data: { name: "Militari", slug: "militari", city: { connect: { slug: "bucharest" } } }
+  ) { id slug }
+
+  n6: createNeighborhood(
+    data: { name: "Dumbravita", slug: "dumbravita", city: { connect: { slug: "timisoara" } } }
+  ) { id slug }
+
+}
+
+mutation LinkProperties {
+  p1: updateProperty(
+    where: { slug: "apartament-2-camere-gheorgheni" }
+    data: {
+      city: { connect: { slug: "cluj-napoca" } }
+      neighborhood: { connect: { slug: "gheorgheni" } }
+    }
+  ) { id slug }
+
+  p2: updateProperty(
+    where: { slug: "garsoniera-moderna-marasti" }
+    data: {
+      city: { connect: { slug: "cluj-napoca" } }
+      neighborhood: { connect: { slug: "marasti" } }
+    }
+  ) { id slug }
+
+  p3: updateProperty(
+    where: { slug: "apartament-4-camere-buna-ziua" }
+    data: {
+      city: { connect: { slug: "cluj-napoca" } }
+      neighborhood: { connect: { slug: "buna-ziua" } }
+    }
+  ) { id slug }
+
+  p4: updateProperty(
+    where: { slug: "apartament-3-camere-aviatiei" }
+    data: {
+      city: { connect: { slug: "bucharest" } }
+      neighborhood: { connect: { slug: "aviatiei" } }
+    }
+  ) { id slug }
+
+  p5: updateProperty(
+    where: { slug: "apartament-2-camere-militari" }
+    data: {
+      city: { connect: { slug: "bucharest" } }
+      neighborhood: { connect: { slug: "militari" } }
+    }
+  ) { id slug }
+
+  p6: updateProperty(
+    where: { slug: "casa-cu-curte-dumbravita" }
+    data: {
+      city: { connect: { slug: "timisoara" } }
+      neighborhood: { connect: { slug: "dumbravita" } }
+    }
+  ) { id slug }
+
+}
+
+mutation CreateTestimonials {
+  t1: createTestimonial(
+    data: {
+      slug: "t-andrei-1"
+      authorName: "Cristina Ilies"
+      rating: 5
+      quote: "Andrei knew every block on the street and told us which ones had already replaced the plumbing. We saw four apartments and bought the third."
+      agent: { connect: { slug: "andrei-popescu" } }
+    }
+  ) { id slug }
+
+  t2: createTestimonial(
+    data: {
+      slug: "t-andrei-2"
+      authorName: "Bogdan Neamtu"
+      rating: 4
+      quote: "Straightforward about what the apartment was worth, even when that was lower than we hoped. The sale closed in five weeks."
+      agent: { connect: { slug: "andrei-popescu" } }
+    }
+  ) { id slug }
+
+  t3: createTestimonial(
+    data: {
+      slug: "t-ioana-1"
+      authorName: "Raluca Toma"
+      rating: 5
+      quote: "I was renting from another city and Ioana did the first two viewings on video. Nothing was different when I arrived in person."
+      agent: { connect: { slug: "ioana-muresan" } }
+    }
+  ) { id slug }
+
+  t4: createTestimonial(
+    data: {
+      slug: "t-mihai-1"
+      authorName: "Andreea Voicu"
+      rating: 5
+      quote: "Mihai pushed back when the seller changed the terms late in the process. We paid what we had agreed."
+      agent: { connect: { slug: "mihai-dobre" } }
+    }
+  ) { id slug }
+
+  t5: createTestimonial(
+    data: {
+      slug: "t-elena-1"
+      authorName: "Sorin Dumitrescu"
+      rating: 4
+      quote: "Clear paperwork and no surprises at the notary. Elena answered on weekends when the bank was slow."
+      agent: { connect: { slug: "elena-stanciu" } }
+    }
+  ) { id slug }
+
+  t6: createTestimonial(
+    data: {
+      slug: "t-radu-1"
+      authorName: "Alina Farcas"
+      rating: 5
+      quote: "Radu talked us out of the first house we liked because of a drainage problem we had not noticed. That saved us a lot."
+      agent: { connect: { slug: "radu-ardelean" } }
+    }
+  ) { id slug }
+
+  t7: createTestimonial(
+    data: {
+      slug: "t-transilvania-1"
+      authorName: "Vlad Chiriac"
+      rating: 5
+      quote: "We worked with two of their agents over three years, for a rental and then a purchase. The handover between them was seamless."
+      agency: { connect: { slug: "transilvania-imobiliare" } }
+    }
+  ) { id slug }
+
+  t8: createTestimonial(
+    data: {
+      slug: "t-urban-1"
+      authorName: "Diana Preda"
+      rating: 4
+      quote: "Good coverage across the northern sectors. Their listings matched what we actually found on site, which was not true everywhere."
+      agency: { connect: { slug: "urban-estate" } }
+    }
+  ) { id slug }
+
+  t9: createTestimonial(
+    data: {
+      slug: "t-west-1"
+      authorName: "Ionut Barbu"
+      rating: 5
+      quote: "A small office, but they know the suburbs around Timisoara better than the big agencies do."
+      agency: { connect: { slug: "west-home" } }
+    }
+  ) { id slug }
+
+}
+
+mutation PublishModels {
+  cities: publishManyCitiesConnection(from: DRAFT, to: PUBLISHED, first: 100) {
+    edges { node { id slug } }
+  }
+  neighborhoods: publishManyNeighborhoodsConnection(from: DRAFT, to: PUBLISHED, first: 100) {
+    edges { node { id slug } }
+  }
+  testimonials: publishManyTestimonialsConnection(from: DRAFT, to: PUBLISHED, first: 100) {
+    edges { node { id slug } }
+  }
+  properties: publishManyPropertiesConnection(from: DRAFT, to: PUBLISHED, first: 100) {
+    edges { node { id slug } }
+  }
+}
+
+query VerifyModels {
+  cities { slug name county }
+  neighborhoods { slug name city { slug } }
+  testimonials { slug authorName rating agent { slug } agency { slug } }
+  properties { slug city { slug } neighborhood { slug } images { url } }
+}

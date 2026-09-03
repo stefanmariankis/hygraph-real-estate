@@ -8,9 +8,10 @@ export function PropertyGrid({
 }) {
   return (
     <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {properties.map((property) => (
+      {properties.map((property, index) => (
         <li key={property.id} className="min-w-0">
-          <PropertyCard property={property} />
+          {/* One row's worth above the fold, so the first paint has images. */}
+          <PropertyCard property={property} priority={index < 3} />
         </li>
       ))}
     </ul>
@@ -23,7 +24,7 @@ export function PropertyGridSkeleton({ count = 6 }: { count?: number }) {
     <div
       className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
       aria-busy="true"
-      aria-label="Loading listings"
+      aria-label="Loading properties"
     >
       {Array.from({ length: count }, (_, i) => (
         <div

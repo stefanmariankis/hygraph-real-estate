@@ -3,16 +3,10 @@
  *
  * Values below are the ones the API actually returns (camelCase), verified by
  * introspection — not the SCREAMING_SNAKE spelling.
+ *
+ * City is deliberately absent: it used to be an enum, and is now a model, so
+ * its names come from the API rather than from a list baked in here.
  */
-
-export const CITIES = [
-  "clujNapoca",
-  "bucharest",
-  "bistrita",
-  "oradea",
-  "timisoara",
-] as const;
-export type City = (typeof CITIES)[number];
 
 export const PROPERTY_TYPES = ["apartment", "house"] as const;
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
@@ -35,14 +29,6 @@ export const LISTING_STATUSES = [
   "rented",
 ] as const;
 export type ListingStatus = (typeof LISTING_STATUSES)[number];
-
-export const CITY_LABELS: Record<City, string> = {
-  clujNapoca: "Cluj-Napoca",
-  bucharest: "Bucharest",
-  bistrita: "Bistrita",
-  oradea: "Oradea",
-  timisoara: "Timisoara",
-};
 
 export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   apartment: "Apartment",
@@ -132,8 +118,8 @@ export function formatFloorShort(floor: number | null | undefined): string {
   return String(floor);
 }
 
-export function formatListingCount(count: number): string {
-  return count === 1 ? "1 listing" : `${numberFormat.format(count)} listings`;
+export function formatPropertyCount(count: number): string {
+  return count === 1 ? "1 property" : `${numberFormat.format(count)} properties`;
 }
 
 export function formatNumber(value: number): string {

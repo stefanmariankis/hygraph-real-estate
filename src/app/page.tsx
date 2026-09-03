@@ -1,18 +1,14 @@
 import { Suspense } from "react";
-import Filters from "@/components/Filters";
-import EmptyState from "@/components/EmptyState";
-import { PropertyGrid, PropertyGridSkeleton } from "@/components/PropertyGrid";
-import { formatListingCount } from "@/lib/domain";
-import {
-  parseFilters,
-  toWhere,
-  type Filters as FilterValues,
-} from "@/lib/filters";
-import { getProperties } from "@/lib/queries";
+import PropertyList from "@/components/PropertyList";
+import { PropertyGrid } from "@/components/PropertyGrid";
+import { formatPropertyCount } from "@/lib/domain";
+import { getFilterOptions, getProperties } from "@/lib/queries";
 
-export default async function HomePage({ searchParams }: PageProps<"/">) {
-  const params = await searchParams;
-  const filters = parseFilters(params);
+export default async function HomePage() {
+  const [properties, cities] = await Promise.all([
+    getProperties(),
+    getFilterOptions(),
+  ]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -26,51 +22,25 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         </p>
       </header>
 
+      {/* The filter bar reads the URL, so this boundary is what gets written
+          into the exported HTML. Rendering the real, unfiltered grid here —
+          rather than a skeleton — means crawlers and the first paint both get
+          the full catalogue, and filtering takes over after hydration. */}
       <Suspense
         fallback={
-          <div className="h-[184px] rounded-2xl border border-slate-200 bg-white shadow-sm" />
+          <>
+            <div className="h-[184px] rounded-2xl border border-slate-200 bg-white shadow-sm" />
+            <div className="mt-8">
+              <p className="mb-4 text-sm font-medium text-slate-500">
+                {formatPropertyCount(properties.length)}
+              </p>
+              <PropertyGrid properties={properties} />
+            </div>
+          </>
         }
       >
-        <Filters />
+        <PropertyList properties={properties} cities={cities} />
       </Suspense>
-
-      <Suspense
-        key={JSON.stringify(filters)}
-        fallback={
-          <div className="mt-8">
-            <div className="mb-4 h-4 w-24 animate-pulse rounded bg-slate-200" />
-            <PropertyGridSkeleton />
-          </div>
-        }
-      >
-        <Results filters={filters} />
-      </Suspense>
-    </div>
-  );
-}
-
-async function Results({ filters }: { filters: FilterValues }) {
-  const { properties, count } = await getProperties(toWhere(filters));
-
-  if (properties.length === 0) {
-    return (
-      <div className="mt-8">
-        <EmptyState
-          title="No listings match these filters"
-          body="Try a wider price range, or pick a different city."
-          actionHref="/"
-          actionLabel="Clear filters"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-8">
-      <p className="mb-4 text-sm font-medium text-slate-500" aria-live="polite">
-        {formatListingCount(count)}
-      </p>
-      <PropertyGrid properties={properties} />
     </div>
   );
 }

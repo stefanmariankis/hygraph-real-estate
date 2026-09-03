@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function BackLink({
   href = "/",
-  children = "Back to listings",
+  children = "Back to properties",
 }: {
   href?: string;
   children?: React.ReactNode;

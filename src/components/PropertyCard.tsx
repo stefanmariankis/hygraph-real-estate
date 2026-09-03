@@ -2,7 +2,6 @@ import Link from "next/link";
 import PropertyThumb from "./PropertyThumb";
 import { ListingTypeBadge, StatusBadge } from "./Badges";
 import {
-  CITY_LABELS,
   PROPERTY_TYPE_LABELS,
   formatFloor,
   formatPrice,
@@ -14,16 +13,35 @@ import type { PropertySummary } from "@/lib/queries";
 
 export default function PropertyCard({
   property,
+  priority = false,
 }: {
   property: PropertySummary;
+  /** Cards in the first visible row load eagerly; lazy ones never start. */
+  priority?: boolean;
 }) {
+  const cover = property.images[0];
+  const place = [property.neighborhood?.name, property.city?.name]
+    .filter(Boolean)
+    .join(", ");
+
   return (
     <article className="group relative flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       <div className="relative">
-        <PropertyThumb
-          propertyType={property.propertyType}
-          className="aspect-[16/10] w-full"
-        />
+        {cover ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={cover.url}
+            alt=""
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
+            className="aspect-[16/10] w-full bg-slate-100 object-cover"
+          />
+        ) : (
+          <PropertyThumb
+            propertyType={property.propertyType}
+            className="aspect-[16/10] w-full"
+          />
+        )}
         <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
           <ListingTypeBadge listingType={property.listingType} />
           {property.propertyStatus !== "available" && (
@@ -43,7 +61,8 @@ export default function PropertyCard({
         </h3>
 
         <p className="mt-1 text-sm text-slate-500">
-          {label(CITY_LABELS, property.city)} ·{" "}
+          {place || "—"}
+          <span className="mx-1.5 text-slate-300">·</span>
           {label(PROPERTY_TYPE_LABELS, property.propertyType)}
         </p>
 
