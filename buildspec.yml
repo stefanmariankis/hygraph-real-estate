@@ -23,7 +23,7 @@ env:
     #   Next.js static export       -> "out"
     #   Astro / SvelteKit static    -> "dist"
     #   plain HTML (no build step)  -> "."       (repo root itself)
-    BUILD_DIR: "dist"
+    BUILD_DIR: "out"
 
 phases:
   install:
